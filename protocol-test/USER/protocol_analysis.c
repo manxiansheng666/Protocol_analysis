@@ -32,3 +32,54 @@ void door_control(uint8_t subcmd,uint8_t *data,uint8_t data_length)
 			myprintf("ID is %d,operate is %d\r\n",door->doorID,door->operate);
 	}
 }
+
+void sk_buff_init(sk_buff *skb_handle,uint8_t *buff,uint32_t buff_len)
+{
+	skb_handle->buff = buff;
+	skb_handle->buff_len = buff_len;
+	skb_handle->data_len = 0;
+	skb_handle->head = buff;
+	skb_handle->data = buff;
+	skb_handle->tail = buff;
+	skb_handle->end = buff + buff_len;
+};
+
+void skb_reserve(sk_buff *skb_handle,uint32_t len)
+{
+	skb_handle->data += len;
+	skb_handle->tail += len;
+}
+
+
+uint8_t *skb_put(sk_buff *skb_handle, unsigned int len)
+{
+	uint8_t *ret = NULL;
+	uint8_t *tail_buf = skb_handle->tail;
+	tail_buf += len;
+	if(tail_buf > skb_handle->end)
+	{
+		return ret;
+	}
+	ret = skb_handle->tail;
+	skb_handle->tail += len;
+	skb_handle->data_len  += len;
+	return ret;
+}
+
+
+uint8_t *skb_push(sk_buff *skb_handle, unsigned int len)
+{
+	uint8_t *ret = NULL;
+	uint8_t *data_buf = skb_handle->data;
+	data_buf -= len;
+	if(data_buf < skb_handle->head)
+	{
+		return ret;
+	}
+	skb_handle->data -= len;
+	skb_handle->data_len  += len;
+	ret = skb_handle->data;
+	return ret;
+}
+
+

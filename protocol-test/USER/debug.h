@@ -4,7 +4,7 @@
 
 //这里的printf函数大概要用到4K的flash
 
-#define print_debug  	1
+#define print_debug  	0
 
 #define DebugUart huart1
 

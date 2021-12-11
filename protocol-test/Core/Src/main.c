@@ -28,7 +28,7 @@
 #include "ring_buffer.h"
 #include "debug.h"
 #include "protocol_analysis.h"
-
+#include "string.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -74,8 +74,10 @@ int main(void)
   /* USER CODE BEGIN 1 */
 	uint8_t num;
 	uint8_t data[200];
+	uint8_t tx_buf[200];
 	message_head *msg_head;
-	
+	sk_buff skb;
+	uint8_t *data_p;
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -113,7 +115,7 @@ Ring_Buffer_Init(&ring_buf,data_cache,CACHE_LEN);
 	  HAL_GPIO_TogglePin(LED_GPIO_Port,LED_Pin);
 	  
 	  
-	  while(num = if_find_frame_end(&ring_buf,data))
+	  while((num = if_find_frame_end(&ring_buf,data)))
 	  {
 		  msg_head = (message_head *)data;
 		  if(!(msg_head->bigin == HEAD && 1))//判断帧头是否正确和校验值是否正确
@@ -123,10 +125,38 @@ Ring_Buffer_Init(&ring_buf,data_cache,CACHE_LEN);
 		  {
 			  case 0x00:
 				  myprintf("No.0 command!\r\n");
-			  
+			  break;
 			  
 			  case 0x01:
 				  door_control(msg_head->subCmd,msg_head->data,msg_head->dataLength);
+			  break;
+			  
+			  case 0x02:
+				sk_buff_init(&skb,tx_buf,200);
+				skb_reserve(&skb,50);
+			  smd_door door = {0x11,0x22};
+			  if((data_p = skb_put(&skb,2)) != NULL)
+			  {
+				memcpy(data_p,&door,sizeof(smd_door));
+			  }
+			  
+			  message_head head = {0xaabb,0x22,0x33,0x11223344,0x55,0x66,0x77,0x88};
+			  if((data_p = skb_push(&skb,sizeof(message_head))) != NULL)
+			  {
+				memcpy(data_p,&head,sizeof(message_head));
+			  }
+			  
+			  frame_end end = {0x99,0xbbaa};
+			  if((data_p = skb_put(&skb,sizeof(frame_end))) != NULL)
+			  {
+				memcpy(data_p,&end,sizeof(frame_end));
+			  }
+			  HAL_UART_Transmit(&huart1,skb.data,skb.data_len,1000);
+			  
+			  break;
+			  
+			  default:
+				break;
 		  }
 		  
 		  
