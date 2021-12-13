@@ -29,10 +29,18 @@
 #include "debug.h"
 #include "protocol_analysis.h"
 #include "string.h"
+#include "rtlist.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
+typedef struct 
+{
+	uint8_t age;
+	uint8_t name[20];
+	rt_list_t node;
+}Person;
+
 
 /* USER CODE END PTD */
 
@@ -111,14 +119,34 @@ Ring_Buffer_Init(&ring_buf,data_cache,CACHE_LEN);
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  HAL_Delay(5);
+	  HAL_Delay(1000);
 	  HAL_GPIO_TogglePin(LED_GPIO_Port,LED_Pin);
 	  
+	  uint8_t **buf = &skb.end;
+	  
+	  sk_buff *skb2 = rt_container_of(buf,sk_buff,end);
+	  
+	  rt_list_t person = RT_LIST_OBJECT_INIT(person);
+	  
+	  Person p1 = {20,"yi"};
+	  Person p2 = {30,"er"};
+	  Person p3 = {25,"san"};
+	  
+	  rt_list_insert_after(&person,&p1.node);
+	  rt_list_insert_after(&person,&p2.node);
+	  rt_list_insert_after(&person,&p3.node);
+	  
+	  
+	  Person *p;
+	  rt_list_for_each_entry_reverse(p,&person,node)
+	  {
+		myprintf("age is %d,name is %s\r\n",p->age,(char *)(p->name));
+	  }
 	  
 	  while((num = if_find_frame_end(&ring_buf,data)))
 	  {
 		  msg_head = (message_head *)data;
-		  if(!(msg_head->bigin == HEAD && 1))//判断帧头是否正确和校验值是否正确
+		  if(!(msg_head->bigin == HEAD && 1))//判断帧头是否正确、校验值是否正确或者通信地址是否正确
 			continue;
 		  
 		  switch(msg_head->command)
